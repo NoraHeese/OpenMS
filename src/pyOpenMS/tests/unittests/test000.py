@@ -1857,7 +1857,7 @@ def testLinearResamplerAlign():
      LinearResamplerAlign.__init__
     """
     ff = pyopenms.LinearResamplerAlign()
-    p = ff.getDefaultsAlign()
+    p = ff.getDefaults()
     _testParam(p)
 
     assert pyopenms.LinearResamplerAlign().raster is not None
