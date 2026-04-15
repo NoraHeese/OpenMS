@@ -500,7 +500,6 @@ START_SECTION((template < typename PeakTypeIterator > void raster_interpolate(Pe
   spec = resampled;
 
   double sum = 0.0;
-  std::cerr << "#################################################################" << sum << "\n";
   for (Size i=0; i<spec.size(); ++i)
   {
     sum += spec[i].getIntensity();
