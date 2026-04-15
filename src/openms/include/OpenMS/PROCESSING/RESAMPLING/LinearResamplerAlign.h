@@ -385,7 +385,6 @@ protected:
     template <typename PeakTypeIterator>
     void verifySpacing_(PeakTypeIterator it, PeakTypeIterator end, auto access)
     {
-      //if (std::distance(it, end) <= 2) return;
       if (it == end || std::next(it) == end) return;
       double min_dist = std::numeric_limits<double>::infinity();
       double current_dist{};

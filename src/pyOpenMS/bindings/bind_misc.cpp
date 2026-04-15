@@ -2646,7 +2646,7 @@ BaseGroupFinder
     auto linearresampleralign_class = nb::class_<OpenMS::LinearResamplerAlign>(m, "LinearResamplerAlign", 
         R"doc(
 Linear Resampling of raw data with alignment
-LinearResampler
+LinearResamplerAlign
 )doc")
         .def(nb::init<>())
         .def("rasterExperiment", [](OpenMS::LinearResamplerAlign& self, OpenMS::MSExperiment& exp) { return self.rasterExperiment(exp); }, "exp"_a, "Resamples the data in an MSExperiment")
