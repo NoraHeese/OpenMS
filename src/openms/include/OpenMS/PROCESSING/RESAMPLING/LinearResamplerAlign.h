@@ -39,7 +39,7 @@ namespace OpenMS
   {
 
   public:
-    LinearResamplerAlign() : DefaultParamHandler("LinearResampler")
+    LinearResamplerAlign() : DefaultParamHandler("LinearResamplerAlign")
     {
       defaults_.setValue("spacing", 0.05, "Spacing of the resampled output peaks.");
       defaults_.setValue("ppm", "false", "Whether spacing is in ppm or Th");
@@ -321,7 +321,6 @@ namespace OpenMS
 
     }
 
-    // !! moved from (deleted) subclass
     void rasterExperiment(PeakMap& exp)
      {
        startProgress(0, exp.size(), "resampling of data");

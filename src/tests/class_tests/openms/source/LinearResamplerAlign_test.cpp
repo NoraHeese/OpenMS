@@ -129,7 +129,6 @@ START_SECTION([EXTRA] test_linear_res_chromat)
 }
 END_SECTION
 
-// test moved form LinearResampler
 START_SECTION(( template <typename PeakType > void rasterExperiment(MSExperiment<PeakType>& exp)))
 {
   MSSpectrum spec;
