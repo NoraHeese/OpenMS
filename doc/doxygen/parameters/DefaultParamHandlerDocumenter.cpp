@@ -58,8 +58,9 @@
 #include <OpenMS/ANALYSIS/QUANTITATION/TMTSixPlexQuantitationMethod.h>
 #include <OpenMS/ANALYSIS/QUANTITATION/TMTSixteenPlexQuantitationMethod.h>
 #include <OpenMS/ANALYSIS/QUANTITATION/TMTTenPlexQuantitationMethod.h>
-#include <OpenMS/ANALYSIS/QUANTITATION/TMTThirtyFivePlexQuantitationMethod.h>
 #include <OpenMS/ANALYSIS/QUANTITATION/TMTThirtyTwoPlexQuantitationMethod.h>
+#include <OpenMS/ANALYSIS/QUANTITATION/TMTThirtyFivePlexQuantitationMethod.h>
+#include <OpenMS/ML/SVM/SimpleSVM.h>
 #include <OpenMS/APPLICATIONS/MapAlignerBase.h>
 #include <OpenMS/CHEMISTRY/MASSDECOMPOSITION/MassDecompositionAlgorithm.h>
 #include <OpenMS/CHEMISTRY/NucleicAcidSpectrumGenerator.h>
@@ -79,19 +80,40 @@
 #include <OpenMS/COMPARISON/SpectrumPrecursorComparator.h>
 #include <OpenMS/COMPARISON/SteinScottImproveScore.h>
 #include <OpenMS/COMPARISON/ZhangSimilarityScore.h>
+#include <OpenMS/PROCESSING/BASELINE/MorphologicalFilter.h>
+#include <OpenMS/FEATUREFINDER/ElutionPeakDetection.h>
+#include <OpenMS/FEATUREFINDER/FeatureFindingMetabo.h>
+#include <OpenMS/FEATUREFINDER/MassTraceDetection.h>
+#include <OpenMS/PROCESSING/NOISEESTIMATION/SignalToNoiseEstimator.h>
+#include <OpenMS/PROCESSING/NOISEESTIMATION/SignalToNoiseEstimatorMeanIterative.h>
+#include <OpenMS/PROCESSING/NOISEESTIMATION/SignalToNoiseEstimatorMedian.h>
+#include <OpenMS/PROCESSING/SMOOTHING/GaussFilter.h>
+#include <OpenMS/PROCESSING/SMOOTHING/LowessSmoothing.h>
+#include <OpenMS/PROCESSING/SMOOTHING/SavitzkyGolayFilter.h>
+#include <OpenMS/PROCESSING/RESAMPLING/LinearResampler.h>
+#include <OpenMS/PROCESSING/FILTERING/NLargest.h>
+#include <OpenMS/PROCESSING/SCALING/Normalizer.h>
+#include <OpenMS/PROCESSING/SPECTRAMERGING/SpectraMerger.h>
+#include <OpenMS/PROCESSING/SCALING/SqrtScaler.h>
+#include <OpenMS/PROCESSING/FILTERING/ThresholdMower.h>
+#include <OpenMS/PROCESSING/FILTERING/WindowMower.h>
+#include <OpenMS/FORMAT/MSPFile.h>
+#include <OpenMS/FORMAT/MascotGenericFile.h>
+#include <OpenMS/FORMAT/MascotRemoteQuery.h>
+#include <OpenMS/MATH/MISC/EmgGradientDescent.h>
+#include <OpenMS/MATH/STATISTICS/PosteriorErrorProbabilityModel.h>
+#include <OpenMS/QC/DBSuitability.h>
 #include <OpenMS/FEATUREFINDER/BaseModel.h>
 #include <OpenMS/FEATUREFINDER/BiGaussFitter1D.h>
 #include <OpenMS/FEATUREFINDER/BiGaussModel.h>
 #include <OpenMS/FEATUREFINDER/EGHTraceFitter.h>
 #include <OpenMS/FEATUREFINDER/ElutionModelFitter.h>
-#include <OpenMS/FEATUREFINDER/ElutionPeakDetection.h>
 #include <OpenMS/FEATUREFINDER/EmgFitter1D.h>
 #include <OpenMS/FEATUREFINDER/EmgModel.h>
 #include <OpenMS/FEATUREFINDER/ExtendedIsotopeFitter1D.h>
 #include <OpenMS/FEATUREFINDER/ExtendedIsotopeModel.h>
 #include <OpenMS/FEATUREFINDER/FeatureFinderAlgorithmMetaboIdent.h>
 #include <OpenMS/FEATUREFINDER/FeatureFinderAlgorithmPicked.h>
-#include <OpenMS/FEATUREFINDER/FeatureFindingMetabo.h>
 #include <OpenMS/FEATUREFINDER/Fitter1D.h>
 #include <OpenMS/FEATUREFINDER/GaussFitter1D.h>
 #include <OpenMS/FEATUREFINDER/GaussModel.h>
@@ -99,43 +121,23 @@
 #include <OpenMS/FEATUREFINDER/InterpolationModel.h>
 #include <OpenMS/FEATUREFINDER/IsotopeFitter1D.h>
 #include <OpenMS/FEATUREFINDER/IsotopeModel.h>
-#include <OpenMS/FEATUREFINDER/MassTraceDetection.h>
 #include <OpenMS/FEATUREFINDER/MaxLikeliFitter1D.h>
 #include <OpenMS/FEATUREFINDER/MultiplexDeltaMassesGenerator.h>
 #include <OpenMS/FEATUREFINDER/TraceFitter.h>
-#include <OpenMS/FORMAT/MSPFile.h>
-#include <OpenMS/FORMAT/MascotGenericFile.h>
-#include <OpenMS/FORMAT/MascotRemoteQuery.h>
-#include <OpenMS/MATH/MISC/EmgGradientDescent.h>
-#include <OpenMS/MATH/STATISTICS/PosteriorErrorProbabilityModel.h>
-#include <OpenMS/ML/SVM/SimpleSVM.h>
-#include <OpenMS/PROCESSING/BASELINE/MorphologicalFilter.h>
 #include <OpenMS/PROCESSING/CENTROIDING/PeakPickerHiRes.h>
 #include <OpenMS/PROCESSING/CENTROIDING/PeakPickerIterative.h>
-#include <OpenMS/PROCESSING/FILTERING/NLargest.h>
-#include <OpenMS/PROCESSING/FILTERING/ThresholdMower.h>
-#include <OpenMS/PROCESSING/FILTERING/WindowMower.h>
-#include <OpenMS/PROCESSING/NOISEESTIMATION/SignalToNoiseEstimator.h>
-#include <OpenMS/PROCESSING/NOISEESTIMATION/SignalToNoiseEstimatorMeanIterative.h>
-#include <OpenMS/PROCESSING/NOISEESTIMATION/SignalToNoiseEstimatorMedian.h>
-#include <OpenMS/PROCESSING/SCALING/Normalizer.h>
-#include <OpenMS/PROCESSING/SCALING/SqrtScaler.h>
-#include <OpenMS/PROCESSING/SMOOTHING/GaussFilter.h>
-#include <OpenMS/PROCESSING/SMOOTHING/LowessSmoothing.h>
-#include <OpenMS/PROCESSING/SMOOTHING/SavitzkyGolayFilter.h>
-#include <OpenMS/PROCESSING/SPECTRAMERGING/SpectraMerger.h>
-#include <OpenMS/QC/DBSuitability.h>
 
 // those are only added if GUI is enabled
 #ifdef WITH_GUI
-  #include <OpenMS/VISUAL/APPLICATIONS/TOPPASBase.h>
-  #include <OpenMS/VISUAL/APPLICATIONS/TOPPViewBase.h>
-  #include <OpenMS/VISUAL/Plot1DCanvas.h>
-  #include <OpenMS/VISUAL/Plot2DCanvas.h>
-  #include <OpenMS/VISUAL/Plot3DCanvas.h>
-  #include <OpenMS/VISUAL/PlotCanvas.h>
-  #include <OpenMS/VISUAL/SpectraIDViewTab.h>
-  #include <QApplication>
+#include <QApplication>
+
+#include <OpenMS/VISUAL/PlotCanvas.h>
+#include <OpenMS/VISUAL/Plot1DCanvas.h>
+#include <OpenMS/VISUAL/Plot2DCanvas.h>
+#include <OpenMS/VISUAL/Plot3DCanvas.h>
+#include <OpenMS/VISUAL/SpectraIDViewTab.h>
+#include <OpenMS/VISUAL/APPLICATIONS/TOPPASBase.h>
+#include <OpenMS/VISUAL/APPLICATIONS/TOPPViewBase.h>
 #endif
 
 
@@ -146,13 +148,10 @@ using namespace OpenMS;
 
 // this weird piece of code is required to avoid the following linker errors in VS2019
 /*
-Error	LNK2001	unresolved external symbol "public: virtual void * __cdecl OpenMS::MSExperiment::`scalar deleting destructor'(unsigned int)"
-(??_GMSExperiment@OpenMS@@UEAAPEAXI@Z)	DefaultParamHandlerDocumenter	C:\dev\openms_test_build19\doc\DefaultParamHandlerDocumenter.obj	1 Error
-LNK2019	unresolved external symbol "public: virtual void * __cdecl OpenMS::MSExperiment::`vector deleting destructor'(unsigned int)"
-(??_EMSExperiment@OpenMS@@UEAAPEAXI@Z) referenced in function "[thunk]:public: virtual void * __cdecl OpenMS::MSExperiment::`vector deleting
-destructor'`adjustor{72}' (unsigned int)" (??_EMSExperiment@OpenMS@@WEI@EAAPEAXI@Z)	DefaultParamHandlerDocumenter
-C:\dev\openms_test_build19\doc\DefaultParamHandlerDocumenter.obj	1 see https://stackoverflow.com/a/74235019/1913074 Alternatively, define
-~MSExperiment(){}; instead of using ' = default;'
+Error	LNK2001	unresolved external symbol "public: virtual void * __cdecl OpenMS::MSExperiment::`scalar deleting destructor'(unsigned int)" (??_GMSExperiment@OpenMS@@UEAAPEAXI@Z)	DefaultParamHandlerDocumenter	C:\dev\openms_test_build19\doc\DefaultParamHandlerDocumenter.obj	1	
+Error	LNK2019	unresolved external symbol "public: virtual void * __cdecl OpenMS::MSExperiment::`vector deleting destructor'(unsigned int)" (??_EMSExperiment@OpenMS@@UEAAPEAXI@Z) referenced in function "[thunk]:public: virtual void * __cdecl OpenMS::MSExperiment::`vector deleting destructor'`adjustor{72}' (unsigned int)" (??_EMSExperiment@OpenMS@@WEI@EAAPEAXI@Z)	DefaultParamHandlerDocumenter	C:\dev\openms_test_build19\doc\DefaultParamHandlerDocumenter.obj	1
+see https://stackoverflow.com/a/74235019/1913074
+Alternatively, define ~MSExperiment(){}; instead of using ' = default;'
 */
 void foo()
 {
@@ -161,20 +160,23 @@ void foo()
 }
 
 //**********************************************************************************
-// Helper method - use this method to generate the actual parameter documentation
+//Helper method - use this method to generate the actual parameter documentation
 //**********************************************************************************
 void writeParameters(const String& class_name, const Param& param, bool table_only = false)
 {
   const String filename = String("output/OpenMS_") + class_name + ".parameters";
   ofstream f(filename.c_str());
 
-  if (! f)
+  if (!f)
   {
     std::cerr << "Cannot open file '" << filename << "'. Check for invalid characters in filename and permissions.\n";
     exit(1);
   }
-
-  if (! table_only) { f << "<B>Parameters of this class are:</B><BR><BR>\n"; }
+    
+  if (!table_only)
+  {
+    f << "<B>Parameters of this class are:</B><BR><BR>\n";
+  }
   f << R"(<table class="doxtable" border="1" width="100%" cellpadding="4">)" << endl;
   f << "<tr><th>Name</th><th>Type</th><th>Default</th><th>Restrictions</th><th>Description</th></tr>" << endl;
   String type, description, restrictions;
@@ -184,9 +186,12 @@ void writeParameters(const String& class_name, const Param& param, bool table_on
     if (it->value.valueType() == ParamValue::INT_VALUE || it->value.valueType() == ParamValue::INT_LIST)
     {
       type = "int";
-      if (it->value.valueType() == ParamValue::INT_LIST) { type += " list"; }
+      if (it->value.valueType() == ParamValue::INT_LIST)
+      {
+        type += " list";
+      }
 
-      // restrictions
+      //restrictions
       bool first = true;
       if (it->min_int != -(numeric_limits<Int>::max)())
       {
@@ -195,16 +200,20 @@ void writeParameters(const String& class_name, const Param& param, bool table_on
       }
       if (it->max_int != (numeric_limits<Int>::max)())
       {
-        if (! first) { restrictions += ' '; }
+        if (!first)
+        {
+          restrictions += ' ';
+        }          
         restrictions += String("max: ") + it->max_int;
       }
     }
     else if (it->value.valueType() == ParamValue::DOUBLE_VALUE || it->value.valueType() == ParamValue::DOUBLE_LIST)
     {
       type = "float";
-      if (it->value.valueType() == ParamValue::DOUBLE_LIST) type += " list";
+      if (it->value.valueType() == ParamValue::DOUBLE_LIST)
+        type += " list";
 
-      // restrictions
+      //restrictions
       bool first = true;
       if (it->min_float != -(numeric_limits<double>::max)())
       {
@@ -213,25 +222,30 @@ void writeParameters(const String& class_name, const Param& param, bool table_on
       }
       if (it->max_float != (numeric_limits<double>::max)())
       {
-        if (! first) restrictions += ' ';
+        if (!first)
+          restrictions += ' ';
         restrictions += String("max: ") + it->max_float;
       }
     }
     else if (it->value.valueType() == ParamValue::STRING_VALUE || it->value.valueType() == ParamValue::STRING_LIST)
     {
       type = "string";
-      if (it->value.valueType() == ParamValue::STRING_LIST) type += " list";
+      if (it->value.valueType() == ParamValue::STRING_LIST)
+        type += " list";
 
-      // restrictions
-      if (! it->valid_strings.empty())
+      //restrictions
+      if (!it->valid_strings.empty())
       {
         String valid_strings;
         valid_strings.concatenate(it->valid_strings.begin(), it->valid_strings.end(), ", ");
         restrictions += valid_strings;
       }
     }
-    if (restrictions == "") { restrictions = "&nbsp;"; }
-    // replace #, @ and newline in description
+    if (restrictions == "")
+    {
+      restrictions = "&nbsp;";
+    }
+    //replace #, @ and newline in description
     description = param.getDescription(it.getName());
     description.substitute("@", "XXnot_containedXX");
     description.substitute("XXnot_containedXX", "@@");
@@ -239,43 +253,53 @@ void writeParameters(const String& class_name, const Param& param, bool table_on
     description.substitute("XXnot_containedXX", "@#");
     description.substitute("\n", "<BR>");
 
-    // create tooltips for sections if they are documented
+    //create tooltips for sections if they are documented
     String name = it.getName();
     vector<String> parts;
     name.split(':', parts);
     String prefix = "";
     for (Size i = 0; i + 1 < parts.size(); ++i)
     {
-      if (i == 0) { prefix = parts[i]; }
+      if (i == 0)
+      {
+        prefix = parts[i];
+      }
       else
       {
         prefix = prefix + ":" + parts[i];
       }
       String docu = param.getSectionDescription(prefix);
-      if (docu != "") { parts[i] = String("<span title=\"") + docu + "\">" + parts[i] + "</span>"; }
+      if (docu != "")
+      {
+        parts[i] = String("<span title=\"") + docu + "\">" + parts[i] + "</span>";
+      }
     }
-    if (parts.size() != 0) { name.concatenate(parts.begin(), parts.end(), ":"); }
+    if (parts.size() != 0)
+    {
+      name.concatenate(parts.begin(), parts.end(), ":");
+    }
 
-    // replace # and @ in values
+    //replace # and @ in values
     String value = it->value.toString(true);
     value.substitute("@", "XXnot_containedXX");
     value.substitute("XXnot_containedXX", "@@");
     value.substitute("#", "XXnot_containedXX");
     value.substitute("XXnot_containedXX", "@#");
 
-    // make the advanced parameters cursive, the normal ones bold
+    //make the advanced parameters cursive, the normal ones bold
     String style = "b";
-    if (it->tags.count("advanced") == 1) style = "i";
+    if (it->tags.count("advanced") == 1)
+      style = "i";
 
-    // final output
+    //final output
     f << "<tr>\n"
       << "  <td style=\"vertical-align:top\"><" << style << ">" << name << "</" << style << "></td>\n"
-      << "  <td style=\"vertical-align:top\">" << type << "</td><td style=\"vertical-align:top\">" << value << "</td>\n"
-      << "  <td style=\"vertical-align:top\">" << restrictions << "</td><td style=\"vertical-align:top\">" << description << "</td>\n"
+      << "  <td style=\"vertical-align:top\">" << type << "</td><td style=\"vertical-align:top\">" << value <<  "</td>\n"
+      << "  <td style=\"vertical-align:top\">" << restrictions << "</td><td style=\"vertical-align:top\">" << description <<  "</td>\n"
       << "</tr>\n";
   }
   f << "</table>" << "\n";
-  if (! table_only)
+  if (!table_only)
   {
     f << "<br>" << "\n"
       << "<b>Note:</b>" << "\n"
@@ -288,19 +312,21 @@ void writeParameters(const String& class_name, const Param& param, bool table_on
 }
 
 //**********************************************************************************
-// Helper macros that can be used for easy classes
+//Helper macros that can be used for easy classes
 //**********************************************************************************
 
 // For classes that have a default-constructor, simply use this macro with the
 // class name
-#define DOCME(class_name) writeParameters("" #class_name, class_name().getDefaults());
+#define DOCME(class_name) \
+  writeParameters("" # class_name, class_name().getDefaults());
 
 // For class templates and classes without default constructor use this macro
 // with (1.) the class name and (2.) a class instance.
-#define DOCME2(class_template_name, instantiation) writeParameters("" #class_template_name, (instantiation).getDefaults());
+#define DOCME2(class_template_name, instantiation) \
+  writeParameters("" # class_template_name, (instantiation).getDefaults());
 
 //**********************************************************************************
-// Main method - add your class here
+//Main method - add your class here
 //**********************************************************************************
 int main(int argc, char** argv)
 {
@@ -364,6 +390,7 @@ int main(int argc, char** argv)
   DOCME(ItraqEightPlexQuantitationMethod);
   DOCME(ItraqFourPlexQuantitationMethod);
   DOCME(LabeledPairFinder);
+  DOCME(LinearResampler);
   DOCME(MSPFile);
   DOCME(MapAlignmentAlgorithmPoseClustering);
   DOCME(SpectrumAnnotator);
@@ -408,7 +435,7 @@ int main(int argc, char** argv)
   DOCME(MassDecompositionAlgorithm);
   DOCME(MascotRemoteQuery);
   DOCME(MascotGenericFile);
-  DOCME(Fitter1D);
+  DOCME(Fitter1D);  
   DOCME(PeptideAndProteinQuant);
   DOCME(SimpleTSGXLMS);
   // workarounds for documenting model parameters in MapAligners:
@@ -427,17 +454,16 @@ int main(int argc, char** argv)
   DOCME2(FeatureFinderAlgorithmPicked, (FeatureFinderAlgorithmPicked()));
   DOCME2(SignalToNoiseEstimatorMeanIterative, SignalToNoiseEstimatorMeanIterative<>());
   DOCME2(SignalToNoiseEstimatorMedian, SignalToNoiseEstimatorMedian<>());
-  DOCME2(SignalToNoiseEstimator,
-         SignalToNoiseEstimatorMedian<>()); // SignalToNoiseEstimator is a base class, get parameters from subclass SignalToNoiseEstimatorMedian
+  DOCME2(SignalToNoiseEstimator, SignalToNoiseEstimatorMedian<>()); //SignalToNoiseEstimator is a base class, get parameters from subclass SignalToNoiseEstimatorMedian
   DOCME2(GaussTraceFitter, (GaussTraceFitter()));
   DOCME2(EGHTraceFitter, (EGHTraceFitter()));
-  DOCME2(TraceFitter, (GaussTraceFitter())); // TraceFitter is an abstract base class, get parameters from subclass GaussTraceFitter
-  DOCME2(BinnedSpectrumCompareFunctor, (BinnedSharedPeakCount())); // BaseModel is a base class, get parameters from subclass BinnedSharedPeakCount
+  DOCME2(TraceFitter, (GaussTraceFitter())); //TraceFitter is an abstract base class, get parameters from subclass GaussTraceFitter
+  DOCME2(BinnedSpectrumCompareFunctor, (BinnedSharedPeakCount())); //BaseModel is a base class, get parameters from subclass BinnedSharedPeakCount
   ItraqFourPlexQuantitationMethod itraq4;
   DOCME2(IsobaricChannelExtractor, (IsobaricChannelExtractor(&itraq4)))
   DOCME2(IsobaricQuantifier, (IsobaricQuantifier(&itraq4)))
   DOCME2(PosteriorErrorProbabilityModel, Math::PosteriorErrorProbabilityModel());
-
+  
 
   // handle GUI documentation separately
 #ifdef WITH_GUI

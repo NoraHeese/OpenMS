@@ -166,6 +166,7 @@
 #include <OpenMS/PROCESSING/FILTERING/NLargest.h>
 #include <OpenMS/PROCESSING/FILTERING/ThresholdMower.h>
 #include <OpenMS/PROCESSING/FILTERING/WindowMower.h>
+#include <OpenMS/PROCESSING/RESAMPLING/LinearResampler.h>
 #include <OpenMS/PROCESSING/RESAMPLING/LinearResamplerAlign.h>
 #include <OpenMS/PROCESSING/SCALING/Normalizer.h>
 #include <OpenMS/PROCESSING/SCALING/RankScaler.h>
@@ -2641,12 +2642,29 @@ BaseGroupFinder
     def_ProgressLogger<OpenMS::LabeledPairFinder>(labeledpairfinder_class);
 
     // -----------------------------------------------------------------------
+    // LinearResampler
+    // -----------------------------------------------------------------------
+    auto linearresampler_class = nb::class_<OpenMS::LinearResampler, OpenMS::DefaultParamHandler>(m, "LinearResampler", 
+        R"doc(
+DefaultParamHandler
+ProgressLogger
+
+Annotates and filters transitions in a TargetedExperiment
+:param exp: The input, unfiltered transitions
+)doc")
+        .def(nb::init<>())
+        .def("raster", [](const OpenMS::LinearResampler& self, OpenMS::MSSpectrum& spectrum) { return self.raster(spectrum); }, "spectrum"_a, "Applies the resampling algorithm to an MSSpectrum")
+        .def("rasterExperiment", [](OpenMS::LinearResampler& self, OpenMS::MSExperiment& exp) { return self.rasterExperiment(exp); }, "exp"_a, "Resamples the data in an MSExperiment")
+        ;
+    def_ProgressLogger<OpenMS::LinearResampler>(linearresampler_class);
+
+    // -----------------------------------------------------------------------
     // LinearResamplerAlign
     // -----------------------------------------------------------------------
-    auto linearresampleralign_class = nb::class_<OpenMS::LinearResamplerAlign>(m, "LinearResamplerAlign", 
+    auto linearresampleralign_class = nb::class_<OpenMS::LinearResamplerAlign, OpenMS::LinearResampler>(m, "LinearResamplerAlign", 
         R"doc(
 Linear Resampling of raw data with alignment
-LinearResamplerAlign
+LinearResampler
 )doc")
         .def(nb::init<>())
         .def("rasterExperiment", [](OpenMS::LinearResamplerAlign& self, OpenMS::MSExperiment& exp) { return self.rasterExperiment(exp); }, "exp"_a, "Resamples the data in an MSExperiment")

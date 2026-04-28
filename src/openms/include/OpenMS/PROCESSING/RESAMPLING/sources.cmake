@@ -3,6 +3,7 @@ set(directory include/OpenMS/PROCESSING/RESAMPLING)
 
 ### list all header files of the directory here
 set(sources_list_h
+LinearResampler.h
 LinearResamplerAlign.h
 )
 
